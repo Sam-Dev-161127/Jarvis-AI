@@ -11,4 +11,4 @@ def say(text):
 
 if __name__ == '__main__':
     print('PyCharm')
-    say('I am Jarvis AI')
+    say('I am Jarvis AI made by Sam')
