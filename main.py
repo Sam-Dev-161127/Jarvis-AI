@@ -3,12 +3,12 @@ import os
 
 def say(text):
     os.system(
-        f'powershell -Command "Add-Type -AssemblyName System.Speech; ' # For Window
-        f'$speak = New-Object System.Speech.Synthesis.SpeechSynthesizer; '
-        f'$speak.Volume = 75; '   # 🔉 0 to 100 
+        f'powershell -Command "Add-Type -AssemblyName System.Speech; '  # Load speech lib
+        f'$speak = New-Object System.Speech.Synthesis.SpeechSynthesizer; '  # Create voice engine
+        f'$speak.Volume = 75; '   # Set volume (0-100)
         f'$speak.Speak(\'{text}\')"'
     )
 
 if __name__ == '__main__':
-    print('PyCharm')
-    say('I am Jarvis AI made by Sam')
+    print('PyCharm')  # Console test
+    say('I am Jarvis AI made by Sam')  # Speak text
