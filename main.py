@@ -88,6 +88,18 @@ if __name__ == '__main__':
         ["downfall", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Song\Downfall.mp3"]
     ]
 
+    # List of games
+    games = [
+
+        # You can add your own games here
+        # Note: Your game path and my game path will be different
+
+        ["valorant", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Game\VALORANT.lnk"],
+        ["epic games", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Game\Epic Games Launcher.lnk"],
+        ["genshin impact", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Game\Genshin Impact.lnk"],
+        ["steam", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Game\Steam.lnk"]
+    ]
+
     while True:
 
         query = takeCommand()
@@ -105,6 +117,13 @@ if __name__ == '__main__':
             if f"play {song[0]}" in query.lower():
                 say(f"Playing {song[0]}...")
                 os.startfile(song[1])
+
+        # Open games
+        for game in games:
+
+            if f"open {game[0]}" in query.lower():
+                say(f"Opening {game[0]}...")
+                os.startfile(game[1])
 
         # Repeat what user said
         # say(query)
