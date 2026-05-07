@@ -2,6 +2,8 @@ import speech_recognition as sr
 import os
 import webbrowser
 
+
+# Function to make Jarvis speak
 def say(text):
     os.system(
         f'powershell -Command "Add-Type -AssemblyName System.Speech; '
@@ -10,11 +12,23 @@ def say(text):
         f'$speak.Speak(\'{text}\')"'
     )
 
+
+# Function to take voice command from user
 def takeCommand():
+
     r = sr.Recognizer()
 
     with sr.Microphone() as source:
+
+        print("Listening...")
+
+        # r.pause_threshold controls how long Jarvis waits after you stop speaking
+        # Smaller value = faster response but may cut your voice
+        # Bigger value = waits more before recognizing
+        # You can uncomment and change the value if needed
+
         # r.pause_threshold = 0.6
+
         audio = r.listen(source)
 
         try:
@@ -26,14 +40,21 @@ def takeCommand():
         except Exception as e:
             return "Some Error Occured, Sorry from Jarvis"
 
+
 if __name__ == '__main__':
+
     print('PyCharm')
     say('I am Jarvis AI')
 
+    # List of websites
     sites = [
+
+        # You can add your own websites here
+        # These are the websites from my choice
+
         ["youtube", "https://www.youtube.com"],
         ["google", "https://www.google.com"],
-        ["github", "https://www.github.com"],
+        ["github", "https://github.com/Sam-Dev-161127"],
         ["chatgpt", "https://chat.openai.com"],
         ["wikipedia", "https://www.wikipedia.org"],
         ["gmail", "https://mail.google.com"],
@@ -56,11 +77,34 @@ if __name__ == '__main__':
         ["coursera", "https://www.coursera.org"],
     ]
 
+    # List of songs
+    songs = [
+
+        # You can add your own songs here
+        # Note: Your song path and my song path will be different
+
+        ["majboor", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Song\Majboor.mp3"],
+        ["cornfield", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Song\Cornfield Chase.mp3"],
+        ["downfall", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Song\Downfall.mp3"]
+    ]
+
     while True:
-        print("Listening...")
+
         query = takeCommand()
 
+        # Open websites
         for site in sites:
+
             if f"open {site[0]}" in query.lower():
                 say(f"Opening {site[0]}...")
                 webbrowser.open(site[1])
+
+        # Play songs
+        for song in songs:
+
+            if f"play {song[0]}" in query.lower():
+                say(f"Playing {song[0]}...")
+                os.startfile(song[1])
+
+        # Repeat what user said
+        # say(query)
