@@ -1,14 +1,14 @@
 import speech_recognition as sr
 import os
 import webbrowser
-import openai
 import datetime
 import google.generativeai as genai
+import config
 
 
 # Configure Gemini AI API
-# Replace YOUR_API_KEY with your actual Gemini API key
-genai.configure(api_key="YOUR_API_KEY")
+# API key is stored safely inside config.py
+genai.configure(api_key=config.API_KEY)
 
 
 # Create Gemini AI model
@@ -39,6 +39,26 @@ def aiChat(command):
 
     # Speak AI response
     say(reply)
+
+
+# Function to use Gemini AI only when requested
+def useAI(query):
+
+    # Check if user said "using artificial intelligence"
+    if "using artificial intelligence" in query:
+
+        # Remove trigger words from query
+        clean_query = query.replace("using artificial intelligence", "")
+
+        # Remove extra spaces
+        clean_query = clean_query.strip()
+
+        # Talk with Gemini AI
+        aiChat(clean_query)
+
+        return True
+
+    return False
 
 
 # Function to take voice command from user
@@ -149,6 +169,10 @@ if __name__ == '__main__':
         # Convert query to lowercase
         query = query.lower()
 
+        # Use Gemini AI only when requested
+        if useAI(query):
+            continue
+
         # Open websites
         for site in sites:
 
@@ -212,12 +236,6 @@ if __name__ == '__main__':
 
             # Speak current time
             say(f"The time is {hour} bajke {minute} minute {am_pm}")
-
-        # If command is not matched, ask Gemini AI
-        else:
-
-            # Talk with AI
-            aiChat(query)
 
         # Repeat what user said
         # say(query)
