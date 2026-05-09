@@ -17,6 +17,9 @@ speaker = win32com.client.Dispatch("SAPI.SpVoice")
 # flag to cancel speaking mid-sentence
 is_speaking = False
 
+# flag to stop current AI speech instantly
+stop_requested = False
+
 # store chat history
 chatStr = ""
 
@@ -50,16 +53,32 @@ def clean_for_speech(text):
 # always use this before opening apps, songs, games, websites
 def sayAndWait(text):
     global is_speaking
+    global stop_requested
 
     text = clean_for_speech(text)
+
+    # do not speak if stop was requested
+    if stop_requested:
+        return
+
     print("Jarvis:", text)
 
     is_speaking = True
 
-    # SVSFDefault flag (0) = speak normally and block until done
-    speaker.Speak(text, 0)
+    # split long text into smaller chunks
+    sentences = re.split(r'(?<=[.!?]) +', text)
+
+    for sentence in sentences:
+
+        # instantly stop if user says stop
+        if stop_requested:
+            speaker.Speak("", 3)
+            break
+
+        speaker.Speak(sentence, 0)
 
     is_speaking = False
+    stop_requested = False
 
 
 # speak without waiting — used only for long AI replies
@@ -70,8 +89,10 @@ def say(text):
 # stop speaking immediately — works even during AI long replies
 def stopSpeaking():
     global is_speaking
+    global stop_requested
 
     try:
+        stop_requested = True
         is_speaking = False
 
         # SVSFPurgeBeforeSpeak flag (3) = clear queue and stop current speech instantly
@@ -94,6 +115,10 @@ def clearChat():
 # AI chat function using Gemini
 def aiChat(query):
     global chatStr
+    global stop_requested
+
+    # reset stop flag before new AI reply
+    stop_requested = False
 
     chatStr += f"Sam: {query}\nJarvis: "
 
@@ -105,6 +130,7 @@ def aiChat(query):
 
     print(reply)
 
+    # speak AI reply
     say(reply)
 
     # create Gemini folder if not present
@@ -130,21 +156,21 @@ def aiChat(query):
 def useAI(query):
     global ai_enabled
 
+    # stop Jarvis voice immediately — checked FIRST so it always works
+    if "stop" in query:
+        stopSpeaking()
+        return True
+
     # enable AI mode
-    if "enable artificial intelligence" in query:
+    if "enable ai" in query:
         ai_enabled = True
         sayAndWait("AI enabled")
         return True
 
     # disable AI mode
-    if "disable artificial intelligence" in query:
+    if "disable ai" in query:
         ai_enabled = False
         sayAndWait("AI disabled")
-        return True
-
-    # stop Jarvis voice immediately — checked BEFORE ai_enabled so it always works
-    if "stop" in query:
-        stopSpeaking()
         return True
 
     # clear stored AI conversation memory
@@ -207,14 +233,14 @@ def takeCommand():
 
             print("Listening...")
 
-            # ── LISTENING TIME SETTINGS ───────────────────────────────────────
-            # timeout          → seconds Jarvis waits for you to START speaking
-            #                    increase if you need more time before you begin
-            # phrase_time_limit → seconds Jarvis listens after you START speaking
-            #                    increase if your commands are long
-            #                    decrease if you want faster response
-            audio = r.listen(source, timeout=4, phrase_time_limit=5)
-            # ─────────────────────────────────────────────────────────────────
+            # ── LISTENING TIME SETTINGS ──────────────────────────────────────────#
+            # timeout          → seconds Jarvis waits for you to START speaking    #
+            #                    increase if you need more time before you begin   #
+            # phrase_time_limit → seconds Jarvis listens after you START speaking  #
+            #                    increase if your commands are long                #
+            #                    decrease if you want faster response              #
+            audio = r.listen(source, timeout=4, phrase_time_limit=5)               #
+            # ─────────────────────────────────────────────────────────────────────#
 
             print("Recognizing...")
 
@@ -397,4 +423,5 @@ if __name__ == '__main__':
         # fallback AI if AI mode is enabled
         if not command_matched and ai_enabled:
             aiChat(query)
+
 # Follow Me
