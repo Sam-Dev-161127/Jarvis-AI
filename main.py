@@ -4,7 +4,9 @@ import webbrowser
 import datetime
 import google.generativeai as genai
 import config
+import random
 
+def chat(query):
 
 # Configure Gemini AI API
 # API key is stored safely inside config.py
