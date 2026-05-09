@@ -85,31 +85,54 @@ def useAI(query):
     return False
 
 
+# Function to auto-pick correct microphone
+def get_mic_index():
+    mic_list = sr.Microphone.list_microphone_names()
+
+    for i, name in enumerate(mic_list):
+        if "Realtek HD Audio Mic Array" in name:
+            return i
+        if "Microphone Array (Realtek" in name:
+            return i
+        if "Realtek(R) Audio" in name:
+            return i
+
+    return None
+
+
 # Function to take voice command from user
 def takeCommand():
 
     r = sr.Recognizer()
 
-    with sr.Microphone() as source:
+    mic_index = get_mic_index()
 
-        print("Listening...")
+    if mic_index is None:
+        print("No Real microphone found!")
+        return ""
 
-        # r.pause_threshold controls how long Jarvis waits after you stop speaking
-        # Smaller value = faster response but may cut your voice
-        # Bigger value = waits more before recognizing
+    try:
+        with sr.Microphone(device_index=mic_index) as source:
 
-        # r.pause_threshold = 0.6
+            r.adjust_for_ambient_noise(source, duration=0.5)
 
-        audio = r.listen(source)
+            print("Listening...")
 
-        try:
+            audio = r.listen(source, timeout=6, phrase_time_limit=6)
+
             print("Recognizing...")
+
             query = r.recognize_google(audio, language='en-in')
             print(f"User said: {query}")
             return query
 
-        except Exception as e:
-            return "Some Error Occured, Sorry from Jarvis"
+    except sr.WaitTimeoutError:
+        print("No speech detected (timeout)")
+        return ""
+
+    except Exception as e:
+        print("Mic Error:", e)
+        return ""
 
 
 if __name__ == '__main__':
@@ -119,10 +142,6 @@ if __name__ == '__main__':
 
     # List of websites
     sites = [
-
-        # You can add your own websites here
-        # These are the websites from my choice
-
         ["youtube", "https://www.youtube.com"],
         ["google", "https://www.google.com"],
         ["github", "https://github.com/Sam-Dev-161127"],
@@ -153,10 +172,6 @@ if __name__ == '__main__':
 
     # List of songs
     songs = [
-
-        # You can add your own songs here
-        # Note: Your song path and my song path will be different
-
         ["majboor", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Song\Majboor.mp3"],
         ["cornfield", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Song\Cornfield Chase.mp3"],
         ["downfall", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Song\Downfall.mp3"]
@@ -164,10 +179,6 @@ if __name__ == '__main__':
 
     # List of games
     games = [
-
-        # You can add your own games here
-        # Note: Your game path and my game path will be different
-
         ["valorant", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Game\VALORANT.lnk"],
         ["epic games", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Game\Epic Games Launcher.lnk"],
         ["genshin impact", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Game\Genshin Impact.lnk"],
@@ -176,10 +187,6 @@ if __name__ == '__main__':
 
     # List of Apps
     Apps = [
-
-        # You can add your own App here
-        # Note: Your App path and my App path will be different
-
         ["word", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\Word.lnk"],
         ["powerpoint", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\powerpoint.lnk"],
         ["excel", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\excel.lnk"],
@@ -190,37 +197,34 @@ if __name__ == '__main__':
 
         query = takeCommand()
 
-        # Convert query to lowercase
         query = query.lower()
 
-        # Use Gemini AI only when requested
+        if query == "":
+            continue
+
         if useAI(query):
             continue
 
         # Open websites
         for site in sites:
-
             if f"open {site[0]}" in query:
                 say(f"Opening {site[0]}...")
                 webbrowser.open(site[1])
 
         # Play songs
         for song in songs:
-
             if f"play {song[0]}" in query:
                 say(f"Playing {song[0]}...")
                 os.startfile(song[1])
 
         # Open games
         for game in games:
-
             if f"open {game[0]}" in query:
                 say(f"Opening {game[0]}...")
                 os.startfile(game[1])
 
         # Open App apps
         for App in Apps:
-
             if f"open {App[0]}" in query:
                 say(f"Opening {App[0]}...")
                 os.startfile(App[1])
@@ -228,35 +232,17 @@ if __name__ == '__main__':
         # Tell day, date, month, year and time
         if "the time" in query or "date" in query:
 
-            # Get current date and time
             now = datetime.datetime.now()
 
-            # Get current day name
             day_name = now.strftime("%A")
-
-            # Get current date
             day = now.strftime("%d")
-
-            # Get current month name
             month = now.strftime("%B")
-
-            # Get current year
             year = now.strftime("%Y")
 
-            # Get current hour
             hour = now.strftime("%I")
-
-            # Get current minute
             minute = now.strftime("%M")
-
-            # Get AM or PM
             am_pm = now.strftime("%p")
 
-            # Speak current day
             say(f"Today is {day_name}")
-
-            # Speak current date
             say(f"The date is {day} {month} {year}")
-
-            # Speak current time
             say(f"The time is {hour} bajke {minute} minute {am_pm}")
