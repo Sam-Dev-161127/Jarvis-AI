@@ -7,7 +7,6 @@ import config
 import random
 
 def chat(query):
-
     pass
 
 # Configure Gemini AI API
@@ -17,6 +16,8 @@ genai.configure(api_key=config.API_KEY)
 # Create Gemini AI model
 model = genai.GenerativeModel("gemini-2.5-flash")
 
+# Global variable to store chat history
+chatStr = ""
 
 # Function to make Jarvis speak
 def say(text):
@@ -29,13 +30,20 @@ def say(text):
 
 
 # Function to talk with Gemini AI
-def aiChat(command):
+def aiChat(query):
+    global chatStr
 
-    # Send user command to Gemini AI
-    response = model.generate_content(command)
+    # Add user query into chat history
+    chatStr += f"Sam: {query}\nJarvis: "
 
-    # Store AI response text
+    # Generate Gemini response
+    response = model.generate_content(chatStr)
+
+    # Store AI reply
     reply = response.text
+
+    # Add reply into chat history
+    chatStr += f"{reply}\n"
 
     # Print AI response in terminal
     print(reply)
@@ -43,44 +51,18 @@ def aiChat(command):
     # Speak AI response
     say(reply)
 
-    # -----------------------------------------
     # Save Gemini response into txt file
-    # -----------------------------------------
 
-    # Folder path where txt files will be saved
-    folder_path = r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Gemini"
+    # Create folder if not exists
+    if not os.path.exists("Gemini"):
+        os.mkdir("Gemini")
 
-    # Create Gemini folder if it does not exist
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
+    # Create clean filename
+    filename = query.replace("using artificial intelligence", "").strip()
 
-    # Remove trigger words from filename
-    clean_name = command.replace("using artificial intelligence", "").strip()
-
-    # Remove invalid filename characters
-    clean_name = clean_name.replace("?", "")
-    clean_name = clean_name.replace("/", "")
-    clean_name = clean_name.replace("\\", "")
-    clean_name = clean_name.replace(":", "")
-    clean_name = clean_name.replace("*", "")
-    clean_name = clean_name.replace('"', "")
-    clean_name = clean_name.replace("<", "")
-    clean_name = clean_name.replace(">", "")
-    clean_name = clean_name.replace("|", "")
-
-    # If filename becomes empty
-    if clean_name == "":
-        clean_name = "Gemini_Response"
-
-    # Create full file path
-    file_path = os.path.join(folder_path, f"{clean_name}.txt")
-
-    # Save Gemini response into txt file
-    with open(file_path, "w", encoding="utf-8") as file:
-        file.write(reply)
-
-    # Print saved file message
-    print(f"Response saved in: {file_path}")
+    # Save response
+    with open(f"Gemini/{filename}.txt", "w", encoding="utf-8") as f:
+        f.write(reply)
 
 
 # Function to use Gemini AI only when requested
@@ -278,6 +260,3 @@ if __name__ == '__main__':
 
             # Speak current time
             say(f"The time is {hour} bajke {minute} minute {am_pm}")
-
-        # Repeat what user said
-        # say(query)
