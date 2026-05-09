@@ -8,12 +8,23 @@ import config
 import random
 import openai
 import pyttsx3  # pip install pyttsx3
+import threading
+
+
+# Global stop speaking flag
+stop_speaking = False
+
+# Global engine
+engine = None
 
 
 def chat(query):
     global chatStr
+
     print(chatStr)
+
     openai.api_key = config.API_KEY
+
     chatStr += f"Harry: {query}\n Jarvis: "
 
     response = openai.Completion.create(
@@ -28,6 +39,7 @@ def chat(query):
 
     # todo: Wrap this inside of a try catch block
     # print(response["choices"][0]["text"])
+
     chatStr += f"{response['choices'][0]['text']}\n"
 
     # Logic for saving the chat to a file as seen in Screenshot 2026-05-09 085914.png
@@ -36,6 +48,7 @@ def chat(query):
 
     # Using the split logic from your screenshot
     filename = "".join(query.split('intelligence')[1:]).strip()
+
     if filename == "":
         filename = f"chat-{random.randint(1, 2343434356)}"
 
@@ -72,27 +85,65 @@ def clean_for_speech(text):
     text = re.sub(r'^\s*[-*+]\s+', '', text, flags=re.MULTILINE)  # remove bullet dashes
     text = re.sub(r'\n+', ' ', text)                   # collapse newlines into spaces
     text = re.sub(r'\s{2,}', ' ', text)                # collapse extra spaces
+
     return text.strip()
 
 
 # Function to make Jarvis speak
-def say(text):
+def speak_thread(text):
+    global engine
+    global stop_speaking
+
     # Clean markdown before speaking so symbols like ** * # are not read aloud
     clean_text = clean_for_speech(text)
-    print(f"Jarvis: {text}")
 
-    # A fresh engine instance is created every call.
-    # Reusing one global engine on Windows causes runAndWait() to silently do nothing
-    # after the first call — this is a known pyttsx3 + Windows bug.
     try:
         engine = pyttsx3.init()
+
         engine.setProperty('volume', 1.0)   # 0.0 to 1.0
         engine.setProperty('rate', 170)     # words per minute
+
         engine.say(clean_text)
+
         engine.runAndWait()
+
         engine.stop()
+
     except Exception as e:
         print(f"Voice error: {e}")
+
+
+def say(text):
+    global stop_speaking
+
+    stop_speaking = False
+
+    print(f"Jarvis: {text}")
+
+    threading.Thread(target=speak_thread, args=(text,)).start()
+
+
+# Function to stop Jarvis speaking
+def stopSpeaking():
+    global engine
+
+    try:
+        if engine:
+            engine.stop()
+
+            print("Jarvis stopped speaking.")
+
+    except Exception as e:
+        print(f"Stop error: {e}")
+
+
+# Function to clear memory/chat
+def clearChat():
+    global chatStr
+
+    chatStr = ""
+
+    say("Chat memory cleared")
 
 
 # Function to talk with Gemini AI
@@ -125,7 +176,9 @@ def aiChat(query):
 
     # Create clean filename — remove trigger words and illegal Windows filename characters
     filename = query.replace("using artificial intelligence", "").strip()
+
     filename = re.sub(r'[\\/:*?"<>|]', '', filename).strip()
+
     if not filename:
         filename = f"chat-{random.randint(1, 9999999)}"
 
@@ -141,18 +194,35 @@ def useAI(query):
     # Enable AI mode
     if "enable artificial intelligence" in query:
         ai_enabled = True
+
         say("Artificial intelligence enabled")
+
         return True
 
     # Disable AI mode
     if "disable artificial intelligence" in query:
         ai_enabled = False
+
         say("Artificial intelligence disabled")
+
+        return True
+
+    # Stop Jarvis speaking
+    if "stop" in query:
+        stopSpeaking()
+
+        return True
+
+    # Clear memory/chat
+    if "clear chat" in query:
+        clearChat()
+
         return True
 
     # If AI mode is enabled → use Gemini
     if ai_enabled:
         aiChat(query)
+
         return True
 
     return False
@@ -163,10 +233,13 @@ def get_mic_index():
     mic_list = sr.Microphone.list_microphone_names()
 
     for i, name in enumerate(mic_list):
+
         if "Realtek HD Audio Mic Array" in name:
             return i
+
         if "Microphone Array (Realtek" in name:
             return i
+
         if "Realtek(R) Audio" in name:
             return i
 
@@ -181,6 +254,7 @@ def takeCommand():
 
     if mic_index is None:
         print("No Real microphone found!")
+
         return ""
 
     try:
@@ -195,24 +269,30 @@ def takeCommand():
             print("Recognizing...")
 
             query = r.recognize_google(audio, language='en-in')
+
             print(f"User said: {query}")
+
             return query
 
     except sr.WaitTimeoutError:
         print("No speech detected (timeout)")
+
         return ""
 
     except Exception as e:
         print("Mic Error:", e)
+
         return ""
 
 
 if __name__ == '__main__':
 
     print('PyCharm')
+
     say('I am Jarvis AI')
 
     # List of websites
+    #You can add your own website as your choice
     sites = [
         ["youtube", "https://www.youtube.com"],
         ["google", "https://www.google.com"],
@@ -243,6 +323,7 @@ if __name__ == '__main__':
     ]
 
     # List of songs
+    # Your path address will be different from my path address
     songs = [
         ["majboor", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Song\Majboor.mp3"],
         ["cornfield", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Song\Cornfield Chase.mp3"],
@@ -250,6 +331,7 @@ if __name__ == '__main__':
     ]
 
     # List of games
+    # Your game shortcut path will be different from my PC path
     games = [
         ["valorant", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Game\VALORANT.lnk"],
         ["epic games", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Game\Epic Games Launcher.lnk"],
@@ -258,6 +340,7 @@ if __name__ == '__main__':
     ]
 
     # List of Apps
+    # Your app shortcut path will be different from my PC path
     Apps = [
         ["word", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\Word.lnk"],
         ["powerpoint", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\powerpoint.lnk"],
@@ -271,8 +354,6 @@ if __name__ == '__main__':
 
         query = query.lower()
 
-        print(f"AI Enabled: {ai_enabled}")
-
         if query == "":
             continue
 
@@ -284,51 +365,113 @@ if __name__ == '__main__':
 
         # Open websites
         for site in sites:
+
             if f"open {site[0]}" in query:
+
                 say(f"Opening {site[0]}...")
+
                 webbrowser.open(site[1])
+
                 command_matched = True
 
         # Play songs
         for song in songs:
+
             if f"play {song[0]}" in query:
+
                 say(f"Playing {song[0]}...")
+
                 os.startfile(song[1])
+
                 command_matched = True
 
         # Open games
         for game in games:
+
             if f"open {game[0]}" in query:
+
                 say(f"Opening {game[0]}...")
+
                 os.startfile(game[1])
+
                 command_matched = True
 
         # Open App apps
         for App in Apps:
+
             if f"open {App[0]}" in query:
+
                 say(f"Opening {App[0]}...")
+
                 os.startfile(App[1])
+
                 command_matched = True
 
-        # Tell day, date, month, year and time
-        if "the time" in query or "date" in query:
+        # Tell day
+        if "which day is it" in query:
+
             now = datetime.datetime.now()
 
             day_name = now.strftime("%A")
-            day = now.strftime("%d")
-            month = now.strftime("%B")
-            year = now.strftime("%Y")
-
-            hour = now.strftime("%I")
-            minute = now.strftime("%M")
-            am_pm = now.strftime("%p")
 
             say(f"Today is {day_name}")
-            say(f"The date is {day} {month} {year}")
+
+            command_matched = True
+
+        # Tell month
+        if "which month is it" in query:
+
+            now = datetime.datetime.now()
+
+            month = now.strftime("%B")
+
+            say(f"This month is {month}")
+
+            command_matched = True
+
+        # Tell year
+        if "which year is it" in query:
+
+            now = datetime.datetime.now()
+
+            year = now.strftime("%Y")
+
+            say(f"The year is {year}")
+
+            command_matched = True
+
+        # Tell date
+        if "what date is it" in query or "tell me the date" in query:
+
+            now = datetime.datetime.now()
+
+            day = now.strftime("%d")
+
+            month = now.strftime("%B")
+
+            year = now.strftime("%Y")
+
+            say(f"Today's date is {day} {month} {year}")
+
+            command_matched = True
+
+        # Tell time
+        if "what time is it" in query or "the time" in query:
+
+            now = datetime.datetime.now()
+
+            hour = now.strftime("%I")
+
+            minute = now.strftime("%M")
+
+            am_pm = now.strftime("%p")
+
             say(f"The time is {hour} bajke {minute} minute {am_pm}")
+
             command_matched = True
 
         # Fallback — if no command matched, send the query to Gemini automatically
         # This handles casual questions like "how are you", "tell me a joke", etc.
         if not command_matched and ai_enabled:
+
             aiChat(query)
