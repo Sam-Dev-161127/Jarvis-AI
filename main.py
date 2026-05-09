@@ -58,6 +58,9 @@ model = genai.GenerativeModel("gemini-2.5-flash")
 # Global variable to store chat history
 chatStr = ""
 
+# AI mode status
+ai_enabled = False
+
 
 # Function to clean markdown symbols from Gemini response before speaking
 # Gemini often returns **bold**, *bullets*, ### headings etc. which sound terrible when read aloud
@@ -133,17 +136,23 @@ def aiChat(query):
 
 # Function to use Gemini AI only when requested
 def useAI(query):
-    # Check if user said "using artificial intelligence"
-    if "using artificial intelligence" in query:
-        # Remove trigger words from query
-        clean_query = query.replace("using artificial intelligence", "")
+    global ai_enabled
 
-        # Remove extra spaces
-        clean_query = clean_query.strip()
+    # Enable AI mode
+    if "enable artificial intelligence" in query:
+        ai_enabled = True
+        say("Artificial intelligence enabled")
+        return True
 
-        # Talk with Gemini AI
-        aiChat(clean_query)
+    # Disable AI mode
+    if "disable artificial intelligence" in query:
+        ai_enabled = False
+        say("Artificial intelligence disabled")
+        return True
 
+    # If AI mode is enabled → use Gemini
+    if ai_enabled:
+        aiChat(query)
         return True
 
     return False
@@ -262,6 +271,8 @@ if __name__ == '__main__':
 
         query = query.lower()
 
+        print(f"AI Enabled: {ai_enabled}")
+
         if query == "":
             continue
 
@@ -319,5 +330,5 @@ if __name__ == '__main__':
 
         # Fallback — if no command matched, send the query to Gemini automatically
         # This handles casual questions like "how are you", "tell me a joke", etc.
-        if not command_matched:
+        if not command_matched and ai_enabled:
             aiChat(query)
