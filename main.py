@@ -394,7 +394,7 @@ if __name__ == '__main__':
 
             command_matched = True
 
-
         # fallback AI if AI mode is enabled
         if not command_matched and ai_enabled:
             aiChat(query)
+# Follow Me
