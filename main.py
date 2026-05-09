@@ -1,13 +1,52 @@
-import speech_recognition as sr
+import speech_recognition as sr  # do not remove the comment import speech_recognition as sr
 import os
+import re
 import webbrowser
 import datetime
 import google.generativeai as genai
 import config
 import random
+import openai
+import pyttsx3  # pip install pyttsx3
+
 
 def chat(query):
-    pass
+    global chatStr
+    print(chatStr)
+    openai.api_key = config.API_KEY
+    chatStr += f"Harry: {query}\n Jarvis: "
+
+    response = openai.Completion.create(
+        model="text-davinci-003",
+        prompt=chatStr,
+        temperature=0.7,
+        max_tokens=256,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0
+    )
+
+    # todo: Wrap this inside of a try catch block
+    # print(response["choices"][0]["text"])
+    chatStr += f"{response['choices'][0]['text']}\n"
+
+    # Logic for saving the chat to a file as seen in Screenshot 2026-05-09 085914.png
+    if not os.path.exists("Openai"):
+        os.mkdir("Openai")
+
+    # Using the split logic from your screenshot
+    filename = "".join(query.split('intelligence')[1:]).strip()
+    if filename == "":
+        filename = f"chat-{random.randint(1, 2343434356)}"
+
+    # Remove illegal Windows filename characters
+    filename = re.sub(r'[\\/:*?"<>|]', '', filename).strip()
+
+    with open(f"Openai/{filename}.txt", "w") as f:
+        f.write(response["choices"][0]["text"])
+
+    return response["choices"][0]["text"]
+
 
 # Configure Gemini AI API
 # API key is stored safely inside config.py
@@ -19,14 +58,38 @@ model = genai.GenerativeModel("gemini-2.5-flash")
 # Global variable to store chat history
 chatStr = ""
 
+
+# Function to clean markdown symbols from Gemini response before speaking
+# Gemini often returns **bold**, *bullets*, ### headings etc. which sound terrible when read aloud
+def clean_for_speech(text):
+    text = re.sub(r'\*\*?(.*?)\*\*?', r'\1', text)   # remove ** bold ** and * italic *
+    text = re.sub(r'#{1,6}\s*', '', text)              # remove ### headings
+    text = re.sub(r'`{1,3}.*?`{1,3}', '', text)       # remove `code` blocks
+    text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)  # remove [link](url) → keep label
+    text = re.sub(r'^\s*[-*+]\s+', '', text, flags=re.MULTILINE)  # remove bullet dashes
+    text = re.sub(r'\n+', ' ', text)                   # collapse newlines into spaces
+    text = re.sub(r'\s{2,}', ' ', text)                # collapse extra spaces
+    return text.strip()
+
+
 # Function to make Jarvis speak
 def say(text):
-    os.system(
-        f'powershell -Command "Add-Type -AssemblyName System.Speech; '
-        f'$speak = New-Object System.Speech.Synthesis.SpeechSynthesizer; '
-        f'$speak.Volume = 75; '
-        f'$speak.Speak(\'{text}\')"'
-    )
+    # Clean markdown before speaking so symbols like ** * # are not read aloud
+    clean_text = clean_for_speech(text)
+    print(f"Jarvis: {text}")
+
+    # A fresh engine instance is created every call.
+    # Reusing one global engine on Windows causes runAndWait() to silently do nothing
+    # after the first call — this is a known pyttsx3 + Windows bug.
+    try:
+        engine = pyttsx3.init()
+        engine.setProperty('volume', 1.0)   # 0.0 to 1.0
+        engine.setProperty('rate', 170)     # words per minute
+        engine.say(clean_text)
+        engine.runAndWait()
+        engine.stop()
+    except Exception as e:
+        print(f"Voice error: {e}")
 
 
 # Function to talk with Gemini AI
@@ -57,8 +120,11 @@ def aiChat(query):
     if not os.path.exists("Gemini"):
         os.mkdir("Gemini")
 
-    # Create clean filename
+    # Create clean filename — remove trigger words and illegal Windows filename characters
     filename = query.replace("using artificial intelligence", "").strip()
+    filename = re.sub(r'[\\/:*?"<>|]', '', filename).strip()
+    if not filename:
+        filename = f"chat-{random.randint(1, 9999999)}"
 
     # Save response
     with open(f"Gemini/{filename}.txt", "w", encoding="utf-8") as f:
@@ -67,10 +133,8 @@ def aiChat(query):
 
 # Function to use Gemini AI only when requested
 def useAI(query):
-
     # Check if user said "using artificial intelligence"
     if "using artificial intelligence" in query:
-
         # Remove trigger words from query
         clean_query = query.replace("using artificial intelligence", "")
 
@@ -102,7 +166,6 @@ def get_mic_index():
 
 # Function to take voice command from user
 def takeCommand():
-
     r = sr.Recognizer()
 
     mic_index = get_mic_index()
@@ -190,7 +253,7 @@ if __name__ == '__main__':
         ["word", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\Word.lnk"],
         ["powerpoint", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\powerpoint.lnk"],
         ["excel", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\excel.lnk"],
-        ["opera", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\opera.lnk"]
+        ["opera", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\Opera GX Browser .lnk"]
     ]
 
     while True:
@@ -202,6 +265,9 @@ if __name__ == '__main__':
         if query == "":
             continue
 
+        # Flag to track if any command was matched
+        command_matched = False
+
         if useAI(query):
             continue
 
@@ -210,28 +276,31 @@ if __name__ == '__main__':
             if f"open {site[0]}" in query:
                 say(f"Opening {site[0]}...")
                 webbrowser.open(site[1])
+                command_matched = True
 
         # Play songs
         for song in songs:
             if f"play {song[0]}" in query:
                 say(f"Playing {song[0]}...")
                 os.startfile(song[1])
+                command_matched = True
 
         # Open games
         for game in games:
             if f"open {game[0]}" in query:
                 say(f"Opening {game[0]}...")
                 os.startfile(game[1])
+                command_matched = True
 
         # Open App apps
         for App in Apps:
             if f"open {App[0]}" in query:
                 say(f"Opening {App[0]}...")
                 os.startfile(App[1])
+                command_matched = True
 
         # Tell day, date, month, year and time
         if "the time" in query or "date" in query:
-
             now = datetime.datetime.now()
 
             day_name = now.strftime("%A")
@@ -246,3 +315,9 @@ if __name__ == '__main__':
             say(f"Today is {day_name}")
             say(f"The date is {day} {month} {year}")
             say(f"The time is {hour} bajke {minute} minute {am_pm}")
+            command_matched = True
+
+        # Fallback — if no command matched, send the query to Gemini automatically
+        # This handles casual questions like "how are you", "tell me a joke", etc.
+        if not command_matched:
+            aiChat(query)
