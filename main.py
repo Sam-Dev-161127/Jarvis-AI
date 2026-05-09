@@ -63,7 +63,7 @@ if __name__ == '__main__':
         ["gmail", "https://mail.google.com"],
         ["instagram", "https://www.instagram.com"],
         ["whatapps", "https://whatapps.com"],
-        ["telegram","https://telegram.com"],
+        ["telegram", "https://telegram.com"],
         ["x", "https://www.x.com"],
         ["linkedin", "https://www.linkedin.com"],
         ["amazon", "https://www.amazon.in"],
@@ -130,13 +130,41 @@ if __name__ == '__main__':
                 say(f"Opening {game[0]}...")
                 os.startfile(game[1])
 
-        # Tell time
-        if "the time" in query.lower():
-            hour = datetime.datetime.now().strftime("%H:")
-            minute = datetime.datetime.now().strftime("%M:")
+        # Tell day, date, month, year and time
+        if "the time" in query.lower() or "date" in query.lower():
 
-            say(f"The time is {hour}baaajke {minute} minute.")
+            # Get current date and time
+            now = datetime.datetime.now()
 
+            # Get current day name
+            day_name = now.strftime("%A")
+
+            # Get current date
+            day = now.strftime("%d")
+
+            # Get current month name
+            month = now.strftime("%B")
+
+            # Get current year
+            year = now.strftime("%Y")
+
+            # Get current hour
+            hour = now.strftime("%I")
+
+            # Get current minute
+            minute = now.strftime("%M")
+
+            # Get AM or PM
+            am_pm = now.strftime("%p")
+
+            # Speak current day
+            say(f"Today is {day_name}")
+
+            # Speak current date
+            say(f"The date is {day} {month} {year}")
+
+            # Speak current time
+            say(f"The time is {hour} bajke {minute} minute {am_pm}")
 
         # Repeat what user said
         # say(query)
