@@ -3,6 +3,16 @@ import os
 import webbrowser
 import openai
 import datetime
+import google.generativeai as genai
+
+
+# Configure Gemini AI API
+# Replace YOUR_API_KEY with your actual Gemini API key
+genai.configure(api_key="YOUR_API_KEY")
+
+
+# Create Gemini AI model
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 
 # Function to make Jarvis speak
@@ -13,6 +23,22 @@ def say(text):
         f'$speak.Volume = 75; '
         f'$speak.Speak(\'{text}\')"'
     )
+
+
+# Function to talk with Gemini AI
+def aiChat(command):
+
+    # Send user command to Gemini AI
+    response = model.generate_content(command)
+
+    # Store AI response text
+    reply = response.text
+
+    # Print AI response in terminal
+    print(reply)
+
+    # Speak AI response
+    say(reply)
 
 
 # Function to take voice command from user
@@ -105,33 +131,54 @@ if __name__ == '__main__':
         ["steam", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Game\Steam.lnk"]
     ]
 
+    # List of MsOffice
+    MsOffice = [
+
+        # You can add your own MsOffice here
+        # Note: Your MsOffice path and my MsOffice path will be different
+
+        ["word", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\MsOffice\Word.lnk"],
+        ["powerpoint", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\MsOffice\powerpoint.lnk"],
+        ["excel", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\MsOffice\excel.lnk"]
+    ]
+
     while True:
 
         query = takeCommand()
 
+        # Convert query to lowercase
+        query = query.lower()
+
         # Open websites
         for site in sites:
 
-            if f"open {site[0]}" in query.lower():
+            if f"open {site[0]}" in query:
                 say(f"Opening {site[0]}...")
                 webbrowser.open(site[1])
 
         # Play songs
         for song in songs:
 
-            if f"play {song[0]}" in query.lower():
+            if f"play {song[0]}" in query:
                 say(f"Playing {song[0]}...")
                 os.startfile(song[1])
 
         # Open games
         for game in games:
 
-            if f"open {game[0]}" in query.lower():
+            if f"open {game[0]}" in query:
                 say(f"Opening {game[0]}...")
                 os.startfile(game[1])
 
+        # Open MsOffice apps
+        for Office in MsOffice:
+
+            if f"open {Office[0]}" in query:
+                say(f"Opening {Office[0]}...")
+                os.startfile(Office[1])
+
         # Tell day, date, month, year and time
-        if "the time" in query.lower() or "date" in query.lower():
+        if "the time" in query or "date" in query:
 
             # Get current date and time
             now = datetime.datetime.now()
@@ -165,6 +212,12 @@ if __name__ == '__main__':
 
             # Speak current time
             say(f"The time is {hour} bajke {minute} minute {am_pm}")
+
+        # If command is not matched, ask Gemini AI
+        else:
+
+            # Talk with AI
+            aiChat(query)
 
         # Repeat what user said
         # say(query)
