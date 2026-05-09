@@ -1,6 +1,8 @@
 import speech_recognition as sr
 import os
 import webbrowser
+import openai
+import datetime
 
 
 # Function to make Jarvis speak
@@ -127,6 +129,14 @@ if __name__ == '__main__':
             if f"open {game[0]}" in query.lower():
                 say(f"Opening {game[0]}...")
                 os.startfile(game[1])
+
+        # Tell time
+        if "the time" in query.lower():
+            hour = datetime.datetime.now().strftime("%H:")
+            minute = datetime.datetime.now().strftime("%M:")
+
+            say(f"The time is {hour}baaajke {minute} minute.")
+
 
         # Repeat what user said
         # say(query)
