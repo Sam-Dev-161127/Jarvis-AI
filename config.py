@@ -1,0 +1,3 @@
+# Gemini API Key
+
+API_KEY = "ADD YOUR GEMINI API KEY HERE"
