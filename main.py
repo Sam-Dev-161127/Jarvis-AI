@@ -8,10 +8,11 @@ import random
 
 def chat(query):
 
+    pass
+
 # Configure Gemini AI API
 # API key is stored safely inside config.py
 genai.configure(api_key=config.API_KEY)
-
 
 # Create Gemini AI model
 model = genai.GenerativeModel("gemini-2.5-flash")
@@ -41,6 +42,45 @@ def aiChat(command):
 
     # Speak AI response
     say(reply)
+
+    # -----------------------------------------
+    # Save Gemini response into txt file
+    # -----------------------------------------
+
+    # Folder path where txt files will be saved
+    folder_path = r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Gemini"
+
+    # Create Gemini folder if it does not exist
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
+    # Remove trigger words from filename
+    clean_name = command.replace("using artificial intelligence", "").strip()
+
+    # Remove invalid filename characters
+    clean_name = clean_name.replace("?", "")
+    clean_name = clean_name.replace("/", "")
+    clean_name = clean_name.replace("\\", "")
+    clean_name = clean_name.replace(":", "")
+    clean_name = clean_name.replace("*", "")
+    clean_name = clean_name.replace('"', "")
+    clean_name = clean_name.replace("<", "")
+    clean_name = clean_name.replace(">", "")
+    clean_name = clean_name.replace("|", "")
+
+    # If filename becomes empty
+    if clean_name == "":
+        clean_name = "Gemini_Response"
+
+    # Create full file path
+    file_path = os.path.join(folder_path, f"{clean_name}.txt")
+
+    # Save Gemini response into txt file
+    with open(file_path, "w", encoding="utf-8") as file:
+        file.write(reply)
+
+    # Print saved file message
+    print(f"Response saved in: {file_path}")
 
 
 # Function to use Gemini AI only when requested
@@ -75,7 +115,6 @@ def takeCommand():
         # r.pause_threshold controls how long Jarvis waits after you stop speaking
         # Smaller value = faster response but may cut your voice
         # Bigger value = waits more before recognizing
-        # You can uncomment and change the value if needed
 
         # r.pause_threshold = 0.6
 
@@ -153,15 +192,16 @@ if __name__ == '__main__':
         ["steam", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Game\Steam.lnk"]
     ]
 
-    # List of MsOffice
-    MsOffice = [
+    # List of Apps
+    Apps = [
 
-        # You can add your own MsOffice here
-        # Note: Your MsOffice path and my MsOffice path will be different
+        # You can add your own App here
+        # Note: Your App path and my App path will be different
 
-        ["word", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\MsOffice\Word.lnk"],
-        ["powerpoint", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\MsOffice\powerpoint.lnk"],
-        ["excel", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\MsOffice\excel.lnk"]
+        ["word", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\Word.lnk"],
+        ["powerpoint", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\powerpoint.lnk"],
+        ["excel", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\excel.lnk"],
+        ["opera", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\opera.lnk"]
     ]
 
     while True:
@@ -196,12 +236,12 @@ if __name__ == '__main__':
                 say(f"Opening {game[0]}...")
                 os.startfile(game[1])
 
-        # Open MsOffice apps
-        for Office in MsOffice:
+        # Open App apps
+        for App in Apps:
 
-            if f"open {Office[0]}" in query:
-                say(f"Opening {Office[0]}...")
-                os.startfile(Office[1])
+            if f"open {App[0]}" in query:
+                say(f"Opening {App[0]}...")
+                os.startfile(App[1])
 
         # Tell day, date, month, year and time
         if "the time" in query or "date" in query:
