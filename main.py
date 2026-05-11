@@ -1,14 +1,14 @@
-import speech_recognition as sr   # Converts microphone voice into text | pip install SpeechRecognition
-import os                         # Used for file handling, opening apps, folders, songs, etc.
-import re                         # Used for pattern matching and cleaning text commands
-import webbrowser                 # Opens websites directly in the default browser
-import datetime                   # Gives current date, time, day, month, year, etc.
+import speech_recognition as sr       # Converts microphone voice into text | pip install SpeechRecognition
+import os                             # Used for file handling, opening apps, folders, songs, etc.
+import re                             # Used for pattern matching and cleaning text commands
+import webbrowser                     # Opens websites directly in the default browser
+import datetime                       # Gives current date, time, day, month, year, etc.
 import google.generativeai as genai   # Gemini AI integration for AI chat features | pip install google-generativeai
-import config                     # Stores secret data like API keys separately
-import random                     # Used for random replies, songs, jokes, choices, etc.
-import threading                  # Runs multiple tasks at the same time (multitasking)
-import time                       # Used for adding delay between tasks
-import win32com.client            # Windows built-in text to speech | pip install pywin32
+import config                         # Stores secret data like API keys separately
+import random                         # Used for random replies, songs, jokes, choices, etc.
+import threading                      # Runs multiple tasks at the same time (multitasking)
+import time                           # Used for adding delay between tasks
+import win32com.client                # Windows built-in text to speech | pip install pywin32
 
 
 # Windows built-in speaker — much more reliable than pyttsx3 on Windows
@@ -21,30 +21,59 @@ is_speaking = False
 stop_requested = False
 
 # store chat history
+# stores previous conversation between user and Jarvis
+# helps AI remember conversation context
+#
+# example:
+# Sam: hello
+# Jarvis: hi
 chatStr = ""
 
 # AI mode toggle
 # Primary Mode  -> AI Enabled  (Gemini AI conversation mode)
 # Secondary Mode -> AI Disabled (Normal command execution mode)
+# False → normal assistant mode
+# True  → AI conversation mode
+# voice commands:
+# "enable ai"
+# "disable ai"
 ai_enabled = False
 
-
 # configure Gemini API using your key
+# API key is stored separately for security reasons
+# NEVER share your API key publicly
 genai.configure(api_key=config.API_KEY)
 
 # create Gemini model
+# flash → faster responses
+# pro   → smarter but slower
+# flash is recommended for Jarvis assistants
 model = genai.GenerativeModel("gemini-2.5-flash")
 
 
 # clean AI response so voice sounds natural
 def clean_for_speech(text):
-    text = re.sub(r'\*\*?(.*?)\*\*?', r'\1', text)  # remove bold and italic
-    text = re.sub(r'#{1,6}\s*', '', text)  # remove headings
-    text = re.sub(r'`{1,3}.*?`{1,3}', '', text)  # remove code blocks
-    text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)  # remove links
-    text = re.sub(r'^\s*[-*+]\s+', '', text, flags=re.MULTILINE)  # remove bullets
-    text = re.sub(r'\n+', ' ', text)  # remove new lines
-    text = re.sub(r'\s{2,}', ' ', text)  # remove extra spaces
+
+    # remove bold and italic markdown
+    text = re.sub(r'\*\*?(.*?)\*\*?', r'\1', text)
+
+    # remove markdown headings
+    text = re.sub(r'#{1,6}\s*', '', text)
+
+    # remove inline and multiline code blocks
+    text = re.sub(r'`{1,3}.*?`{1,3}', '', text)
+
+    # remove markdown links but keep visible text
+    text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+
+    # remove bullet points
+    text = re.sub(r'^\s*[-*+]\s+', '', text, flags=re.MULTILINE)
+
+    # replace multiple lines with single space
+    text = re.sub(r'\n+', ' ', text)
+
+    # remove extra spaces
+    text = re.sub(r'\s{2,}', ' ', text)
 
     return text.strip()
 
@@ -62,16 +91,25 @@ def sayAndWait(text):
         return
 
     print("Jarvis:", text)
-
     is_speaking = True
 
-    # split long text into smaller chunks
+    # split long AI response into smaller chunks
+    # helps:
+    # - smoother speech playback
+    # - faster stop response
+    # - prevents long speech freezing
     sentences = re.split(r'(?<=[.!?]) +', text)
 
     for sentence in sentences:
 
         # instantly stop if user says stop
         if stop_requested:
+
+            # SVSFPurgeBeforeSpeak flag = 3
+            # clears:
+            # - current speech
+            # - queued speech
+            # allows instant interruption
             speaker.Speak("", 3)
             break
 
@@ -82,6 +120,8 @@ def sayAndWait(text):
 
 
 # speak without waiting — used only for long AI replies
+# daemon=True means thread automatically closes
+# when main program exits
 def say(text):
     threading.Thread(target=sayAndWait, args=(text,), daemon=True).start()
 
@@ -105,6 +145,8 @@ def stopSpeaking():
 
 
 # clear chat memory
+# removes stored AI conversation history
+# useful if AI starts giving confusing replies
 def clearChat():
     global chatStr
 
@@ -120,12 +162,15 @@ def aiChat(query):
     # reset stop flag before new AI reply
     stop_requested = False
 
+    # store user query into conversation memory
     chatStr += f"Sam: {query}\nJarvis: "
 
+    # send full conversation to Gemini AI
     response = model.generate_content(chatStr)
 
     reply = response.text
 
+    # store AI reply into memory
     chatStr += f"{reply}\n"
 
     print(reply)
@@ -134,13 +179,22 @@ def aiChat(query):
     say(reply)
 
     # create Gemini folder if not present
+    # this folder stores all AI conversation logs as text files
+    # you can rename:
+    # "Gemini"
+    # "Chats"
+    # "AI Logs"
     if not os.path.exists("Gemini"):
         os.mkdir("Gemini")
 
     # remove unwanted text from filename
     filename = query.replace("using artificial intelligence", "").strip()
 
-    # remove invalid filename characters
+    # remove invalid Windows filename characters
+    # Windows does NOT allow:
+    # \ / : * ? " < > |
+    # without cleanup:
+    # file saving may fail
     filename = re.sub(r'[\\/:*?"<>|]', '', filename).strip()
 
     # create random filename if query is empty
@@ -188,11 +242,16 @@ def useAI(query):
 
 # find correct microphone (Auto selecting the microphone)
 def get_mic_index():
+
+    # get all connected microphone names
     mic_list = sr.Microphone.list_microphone_names()
 
     for i, name in enumerate(mic_list):
 
         # check different Realtek microphone names
+        #
+        # your microphone name may be different
+        # print(mic_list) to see all microphone names
         if "Realtek HD Audio Mic Array" in name:
             return i
 
@@ -207,14 +266,29 @@ def get_mic_index():
 
 # take voice command
 def takeCommand():
+
+    # create speech recognizer object
     r = sr.Recognizer()
 
-    # energy threshold — lower = picks up quieter voices
-    # increase this number (e.g. 400) if background noise triggers false detection
-    # decrease this number (e.g. 200) if Jarvis is not hearing you clearly
+    # energy threshold — controls microphone sensitivity
+    # lower value  → hears quieter voice easier
+    # higher value → ignores more background noise
+    # increase (400–600) if:
+    # - fan noise triggers false listening
+    # - keyboard sounds activate microphone
+    # decrease (100–250) if:
+    # - Jarvis is not detecting your voice
+    # - microphone volume is low
+    # common range:
+    # 150 → quiet room
+    # 300 → balanced
+    # 500+ → noisy room
     r.energy_threshold = 300
 
     # disable auto energy adjustment so manual threshold above is always used
+    #
+    # True  → auto adjusts sensitivity
+    # False → uses fixed threshold value above
     r.dynamic_energy_threshold = False
 
     mic_index = get_mic_index()
@@ -228,7 +302,16 @@ def takeCommand():
         with sr.Microphone(device_index=mic_index) as source:
 
             # noise calibration duration in seconds
-            # increase (e.g. 1.5) if room is noisy, decrease (e.g. 0.5) for quieter rooms
+            # increase if:
+            # - room is noisy
+            # - fan/AC noise exists
+            # decrease if:
+            # - room is quiet
+            # - you want faster listening
+            # recommended:
+            # 0.5 → quiet room
+            # 1.0 → balanced
+            # 2.0 → noisy room
             r.adjust_for_ambient_noise(source, duration=1)
 
             print("Listening...")
@@ -236,54 +319,69 @@ def takeCommand():
             # ── LISTENING TIME SETTINGS ──────────────────────────────────────────#
             # timeout          → seconds Jarvis waits for you to START speaking    #
             #                    increase if you need more time before you begin   #
+            #                    decrease for faster timeout                       #
+            #                                                                      #
             # phrase_time_limit → seconds Jarvis listens after you START speaking  #
             #                    increase if your commands are long                #
             #                    decrease if you want faster response              #
-            audio = r.listen(source, timeout=4, phrase_time_limit=5)               #
+            #                                                                      #
+            # recommended values:                                                  #
+            # timeout=3  → fast users                                              #
+            # timeout=5  → normal usage                                            #
+            # timeout=8+ → slow speaking users                                     #
+            #                                                                      #
+            # phrase_time_limit=3  → short commands                                #
+            # phrase_time_limit=5  → balanced                                      #
+            # phrase_time_limit=10+ → long AI conversations                        #
+            audio = r.listen(source, timeout=4, phrase_time_limit=5)
             # ─────────────────────────────────────────────────────────────────────#
 
             print("Recognizing...")
 
-            # convert voice into text
-            query = r.recognize_google(audio, language='en-in')
+            # convert voice into text using Google Speech Recognition
+            # 'en-in' → Indian English
+            # 'en-us' → American English
+            # 'en-gb' → British English
+            # change language if recognition accuracy is poor
 
+            query = r.recognize_google(audio, language='en-in')
             print("User said:", query)
 
             return query.lower()
 
     except sr.WaitTimeoutError:
+        # triggered when user does not start speaking in time
         print("Listening timeout")
         return ""
 
     except sr.UnknownValueError:
+        # triggered when speech was unclear
         print("Could not understand audio")
         return ""
 
     except Exception as e:
+        # catches microphone/device errors
         print("Mic error:", e)
         return ""
 
 
 # start program
 if __name__ == '__main__':
-
     print("Jarvis started")
-
     sayAndWait("I am Jarvis AI")
 
-
     # websites list (you can add more sites)
+    # format:
+    # ["spoken name", "website url"]
+    # example:
+    # saying "open youtube"
+    # opens youtube website
     sites = [
         ["youtube", "https://www.youtube.com"],
         ["google", "https://www.google.com"],
         ["github", "https://github.com/Sam-Dev-161127"],
-        ["chatgpt", "https://chat.openai.com"],
-        ["claude", "https://claude.com"],
         ["wikipedia", "https://www.wikipedia.org"],
         ["gmail", "https://mail.google.com"],
-        ["instagram", "https://www.instagram.com"],
-        ["whatsapp", "https://web.whatsapp.com/"],
-        ["telegram", "https://web.telegram.org/a/"],
         ["x", "https://www.x.com"],
         ["linkedin", "https://www.linkedin.com"],
         ["amazon", "https://www.amazon.in"],
@@ -302,22 +400,25 @@ if __name__ == '__main__':
         ["coursera", "https://www.coursera.org"],
     ]
 
-
     # Songs List
     # Note: Your song file path/address will be different from my PC path.
     # Change the path according to where your songs are stored on your computer.
-
+    # supported formats:
+    # .mp3 .wav .flac .aac .ogg
+    # example:
+    # r"D:\Music\song.mp3"
     songs = [
         ["majboor", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Song\Majboor.mp3"],
         ["cornfield", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Song\Cornfield Chase.mp3"],
         ["downfall", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Song\Downfall.mp3"]
     ]
 
-
     # Games List
     # Note: Your game shortcut path/address will be different from my PC path.
     # Change the path according to where your games or shortcuts are stored.
-
+    # recommended:
+    # use desktop shortcut (.lnk)
+    # instead of direct .exe file path
     games = [
         ["valorant", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Game\VALORANT.lnk"],
         ["epic games", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Game\Epic Games Launcher.lnk"],
@@ -325,34 +426,44 @@ if __name__ == '__main__':
         ["steam", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\Game\Steam.lnk"]
     ]
 
-
     # Apps List
     # Note: Your application shortcut path/address will be different from my PC path.
     # Change the path according to where your apps or shortcuts are stored.
-
+    # format:
+    # ["spoken app name", "shortcut path"]
     Apps = [
         ["word", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\Word.lnk"],
         ["powerpoint", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\powerpoint.lnk"],
         ["excel", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\excel.lnk"],
-        ["opera", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\Opera GX Browser .lnk"]
+        ["opera", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\Opera GX Browser .lnk"],
+        ["telegram", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\Telegram Desktop - Shortcut.lnk"],
+        ["whatsapp", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\WhatsApp - Shortcut.lnk"],
+        ["instagram", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\Instagram - Shortcut.lnk"],
+        ["chat gpt", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\ChatGPT - Shortcut.lnk"],
+        ["claude", r"C:\Users\Sam-Dev-161127\PycharmProjects\Jarvis AI\App\Claude - Shortcut.lnk"]
     ]
 
-
     # infinite loop for continuous listening
+    # Jarvis keeps running until:
+    # - terminal is closed
+    # - program is stopped
+    # - PC shuts down
     while True:
 
         query = takeCommand()
 
+        # skip loop if nothing was heard
         if query == "":
             continue
 
         command_matched = False
 
-
         # handle AI commands first
+        #
+        # important:
+        # AI commands should run before normal commands
         if useAI(query):
             continue
-
 
         # open websites — sayAndWait so Jarvis finishes speaking before browser opens
         for site in sites:
@@ -360,21 +471,15 @@ if __name__ == '__main__':
                 sayAndWait("Opening " + site[0])
                 webbrowser.open(site[1])
                 command_matched = True
-
+                break  # ← FIX: stop after first match
 
         # play songs — sayAndWait so voice fully finishes before song starts playing
         for song in songs:
-
             if f"play {song[0]}" in query:
-
-                # speak song name and wait until fully done
                 sayAndWait("Playing " + song[0])
-
-                # open song file after speech is done
                 os.startfile(song[1])
-
                 command_matched = True
-
+                break  # ← FIX: stop after first match
 
         # open games — sayAndWait so Jarvis finishes speaking before game launches
         for game in games:
@@ -382,7 +487,7 @@ if __name__ == '__main__':
                 sayAndWait("Opening " + game[0])
                 os.startfile(game[1])
                 command_matched = True
-
+                break  # ← FIX: stop after first match
 
         # open apps — sayAndWait so Jarvis finishes speaking before app launches
         for app in Apps:
@@ -390,37 +495,54 @@ if __name__ == '__main__':
                 sayAndWait("Opening " + app[0])
                 os.startfile(app[1])
                 command_matched = True
-
+                break  # ← FIX: stop after first match
 
         # tell current time
         if "what time is it" in query:
-
             now = datetime.datetime.now()
 
+            # time formatting codes
+            #
+            # %I → hour (12-hour format)
+            # %H → hour (24-hour format)
+            # %M → minutes
+            # %S → seconds
+            # %p → AM/PM
+            #
+            # example:
+            # 09:45 PM
             hour = now.strftime("%I")
             minute = now.strftime("%M")
             am_pm = now.strftime("%p")
-
             sayAndWait(f"The time is {hour}:{minute} {am_pm}")
 
             command_matched = True
 
-
         # tell current date
         if "what date is it" in query:
-
             now = datetime.datetime.now()
 
+            # date formatting codes
+            #
+            # %A → full weekday name
+            # %d → day number
+            # %B → full month name
+            # %Y → full year
+            #
+            # example:
+            # Monday, 11 May 2026
             day_name = now.strftime("%A")
             day = now.strftime("%d")
             month = now.strftime("%B")
             year = now.strftime("%Y")
-
             sayAndWait(f"Today is {day_name}, {day} {month} {year}")
 
             command_matched = True
 
         # fallback AI if AI mode is enabled
+        #
+        # if no command matched,
+        # AI handles the conversation
         if not command_matched and ai_enabled:
             aiChat(query)
 
