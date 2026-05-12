@@ -547,3 +547,38 @@ if __name__ == '__main__':
             aiChat(query)
 
 # Follow Me
+
+# GitHub   : https://github.com/Sam-Dev-161127
+# LinkedIn : https://www.linkedin.com/in/sameer-patra-2b17a83a7
+# X (Twitter) : https://x.com/Sam_Dev_161127
+# Instagram : https://www.instagram.com/sam.dev.161127
+# Telegram  : https://t.me/Sameer161127
+
+
+# ──────────────────────────────────────────────────────────────#
+#                    NEXAURA — SNEAK PEAK                       #
+# ──────────────────────────────────────────────────────────────#
+#                                                               #
+# Upcoming Features Planned For Nexaura AI:                     #
+#                                                               #
+# • Face Recognition Login                                      #
+# • Fully Animated GUI                                          #
+# • Custom Wake Word Detection                                  #
+# • AI Vision (Camera Understanding)                            #
+# • Smart Automation System                                     #
+# • Memory Based Conversations                                  #
+# • Emotion Detection                                           #
+# • PC Control With Gestures                                    #
+# • AI Generated PPT & Notes                                    #
+# • Advanced Multi-AI Support                                   #
+# • Personal Assistant Dashboard                                #
+# • Voice Authentication Security                               #
+# • Real-Time Weather & News                                    #
+# • Mobile App Connectivity                                     #
+#                                                               #
+# Nexaura is planned to be:                                     #
+# "More than an assistant — a complete AI ecosystem."           #
+#                                                               #
+# Status: Under Development 🚀                                  #
+# Creator: Sameer Patra                                         #
+# ──────────────────────────────────────────────────────────────#
