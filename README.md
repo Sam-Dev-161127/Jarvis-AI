@@ -110,4 +110,4 @@ GitHub: https://github.com/Sam-Dev-161127
 # 📌 Final Note
 
 This project is continuously evolving 🚧  
-Jarvis-AI will gradually transform into **NEXAURA**, a next-generation intelligent AI system.
+Jarvis-AI will gradually transform into **NEXAURA**, a next-generation intelligent AI system.This will be complete on June last
