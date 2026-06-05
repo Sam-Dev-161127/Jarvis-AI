@@ -103,7 +103,7 @@ NEXAURA is not just an assistant — it is a **personal AI operating system that
 
 📍 Odisha, India 🇮🇳  
 
-GitHub: https://github.com/Sam-Dev-161127  
+GitHub: https://github.com/sam-dev-161127  
 
 ---
 
